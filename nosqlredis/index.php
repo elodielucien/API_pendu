@@ -19,7 +19,8 @@ catch (Exception $e) {
     die($e->getMessage());
 }
 
-//création d'un joueur 
+//création de joueurs 
+
 
 
 // mise à jour de la valeur
@@ -102,7 +103,29 @@ echo("bonjour")
         </div>
         <div class="col-sm-6">
             <h2>Proposer un mot</h2>
-            <span><input type="text" size="20"/><button>Valider</button></span>
+            <span>
+            
+            <form method="POST">
+
+            <input  id="word" size="20"> <input type="submit"> </span>
+            
+            </form> 
+                
+                <?php
+                        
+                        if(isset($_POST["word"])){
+                            echo("test");
+                            $redis->set('WordToFind', $_POST["word"]);
+                            $values = $redis->get('WordToFind');
+                            print($values);
+
+                        }
+                       
+                    
+
+                ?>
+
+
         </div>
     </div>
 </div>
