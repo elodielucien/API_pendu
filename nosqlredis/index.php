@@ -19,6 +19,8 @@ catch (Exception $e) {
     die($e->getMessage());
 }
 
+//création d'un joueur 
+
 // mise à jour de la valeur
 $redis->set('message', 'Coucou');
 
