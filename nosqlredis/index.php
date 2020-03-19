@@ -105,25 +105,28 @@ echo("bonjour")
             <h2>Proposer un mot</h2>
             <span>
             
-            <form method="POST">
 
-            <input  id="word" size="20"> <input type="submit"> </span>
+
+            <form method="post" action="index.php">
+                <input type="text" name="WORD" />
+
+                 <input type="submit"> </span>
             
             </form> 
                 
-                <?php
-                        
-                        if(isset($_POST["word"])){
-                            echo("test");
-                            $redis->set('WordToFind', $_POST["word"]);
-                            $values = $redis->get('WordToFind');
-                            print($values);
+      <?php
+    
+            $redis->set('WordToFind', $_POST['WORD']);
+            $value = $redis->get('WordToFind');
+             print($value);
+        
+            
+        ?>
 
-                        }
-                       
+                
+                     
                     
 
-                ?>
 
 
         </div>
