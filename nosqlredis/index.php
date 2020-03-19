@@ -116,10 +116,11 @@ echo("bonjour")
                 
       <?php
     
+            if (isset( $_POST['WORD'])){
             $redis->set('WordToFind', $_POST['WORD']);
             $value = $redis->get('WordToFind');
              print($value);
-        
+            }
             
         ?>
 
