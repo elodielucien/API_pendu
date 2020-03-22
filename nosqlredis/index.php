@@ -19,8 +19,53 @@ catch (Exception $e) {
     die($e->getMessage());
 }
 
-//création de joueurs 
+//-------- Création de joueurs --------
 
+//On test si on lance le jeu pour la première fois
+if(!isset($_SESSION['gameStarted'])){
+
+    //On crée les différents joueur
+
+    $redis->HMSET("player1", array(
+        "name" => "Joueur 1",
+        "points" => 0,
+        "IsPlaying" => "false",
+        "ProposedWord" => "false"
+    ));
+    
+    $redis->HMSET("player2", array(
+        "name" => "Joueur 2",
+        "points" => 0,
+        "IsPlaying" => "false",
+        "ProposedWord" => "false"
+    ));
+    echo("test");
+}
+else {
+    echo("test");
+}
+
+
+//On crée une variable de session pour dire que le jeu est lancé
+$_SESSION['gameStarted'] = true; 
+
+//On recup les points du joueur 1
+$nbPointsPlayer = $redis->HGET("player1", "points");
+var_dump($nbPointsPlayer);
+echo("<br />");
+
+//Tests pour recup player who is playing
+/*$playerWhoIsPlaying = $redis->zRangeByScore("player1", "points");
+echo("<br />");
+echo($playerWhoIsPlaying);*/
+
+//On affiche les infos joueur1
+var_dump($redis->hgetall("player1"));
+
+//On ajoute un point au joueur1
+$redis->HSET("player1", "points", "1");
+
+// -------------------------------------
 
 
 // mise à jour de la valeur
@@ -67,9 +112,21 @@ echo("bonjour")
         <div class="col-sm-3">
             <h2>Liste des joueurs</h2>
             <ul>
-                <li>Mick</li>
+            <?php
+            
+            //On affiche dynamiquement une liste la liste des joueurs
+                for($i=1; $i<=2; $i++ ){
+                    echo("<li>");
+                    $playerName = $redis->HGET("player".$i."", "name");
+                    echo($playerName);
+                    echo("</li>");
+                }
+            ?>
+            <!--
+                <li>Bob</li>
                 <li>Jo</li>
                 <li>Lili78</li>
+            -->
             </ul>
         </div>
         <div class="col-sm-6">
@@ -99,39 +156,39 @@ echo("bonjour")
     <div class="row">
         <div class="col-sm-6">
             <h2>Proposer une lettre</h2>
-            <span><input type="text" size="3"/><button>Valider</button></span>
+            <span>
+                <form method="post" action="index.php">
+                    <input type="text" size="3" name="LETTER"/>
+                        <input type="submit"/> 
+                </form>
+            </span>
         </div>
+
         <div class="col-sm-6">
             <h2>Proposer un mot</h2>
             <span>
-            
-
-
-            <form method="post" action="index.php">
-                <input type="text" name="WORD" />
-
-                 <input type="submit"> </span>
-            
-            </form> 
-                
-      <?php
-    
-            if (isset( $_POST['WORD'])){
-            $redis->set('WordToFind', $_POST['WORD']);
-            $value = $redis->get('WordToFind');
-             print($value);
-            }
-            
-        ?>
-
-                
-                     
-                    
-
-
-
+                <form method="post" action="index.php">
+                    <input type="text" name="WORD" />
+                        <input type="submit" /> 
+                </form> 
+            </span>
         </div>
     </div>
 </div>
 </body>
 </html>
+
+<?php
+            //Si on cliqué pour proposer une lettre 
+            if (isset($_POST['LETTER'])){
+                echo("testLetter");
+
+            }
+
+            //Si on a cliqué pour proposer un mot
+            if (isset( $_POST['WORD'])){
+                $redis->set('WordToFind', $_POST['WORD']);
+                $value = $redis->get('WordToFind');
+                print($value);
+            }
+?>
