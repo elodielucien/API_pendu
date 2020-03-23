@@ -1,8 +1,9 @@
 <?php
+//On lance la session
+session_start();
 
 require "predis/autoload.php";
 Predis\Autoloader::register();
-
 
 // Connexion à Redis
 try {
@@ -20,7 +21,7 @@ catch (Exception $e) {
 }
 
 //-------- Création de joueurs --------
-
+$nbPlayers = 4;
 //On test si on lance le jeu pour la première fois
 if(!isset($_SESSION['gameStarted'])){
 
@@ -39,31 +40,39 @@ if(!isset($_SESSION['gameStarted'])){
         "IsPlaying" => "false",
         "ProposedWord" => "false"
     ));
-    echo("test");
+
+    $redis->HMSET("player3", array(
+        "name" => "Joueur 3",
+        "points" => 0,
+        "IsPlaying" => "false",
+        "ProposedWord" => "false"
+    ));
+
+    $redis->HMSET("player4", array(
+        "name" => "Joueur 4",
+        "points" => 0,
+        "IsPlaying" => "false",
+        "ProposedWord" => "false"
+    ));
+    //On crée une variable de session pour dire que le jeu est lancé
+    $_SESSION['nbTries'] = 10;
+    $_SESSION['playerChoosingWord'] = rand(1, $nbPlayers);
+    if($_SESSION['playerChoosingWord'] != 1){
+        $_SESSION['IsProposingLetter'] = 1;
+    }
+    else {
+        $_SESSION['IsProposingLetter'] = 2;
+    }
+
+    $_SESSION['gameStarted'] = true; 
 }
-else {
-    echo("test");
-}
 
-
-//On crée une variable de session pour dire que le jeu est lancé
-$_SESSION['gameStarted'] = true; 
-
-//On recup les points du joueur 1
-$nbPointsPlayer = $redis->HGET("player1", "points");
-var_dump($nbPointsPlayer);
-echo("<br />");
-
-//Tests pour recup player who is playing
-/*$playerWhoIsPlaying = $redis->zRangeByScore("player1", "points");
-echo("<br />");
-echo($playerWhoIsPlaying);*/
 
 //On affiche les infos joueur1
-var_dump($redis->hgetall("player1"));
+//var_dump($redis->hgetall("player1"));
 
 //On ajoute un point au joueur1
-$redis->HSET("player1", "points", "1");
+//$redis->HSET("player1", "points", "1");
 
 // -------------------------------------
 
@@ -75,8 +84,8 @@ $redis->set('message', 'Coucou');
 $value = $redis->get('message');
 
 // affichage de la valeur
-print($value);
-echo ($redis->exists('message')) ? "Oui" : "Non";
+//print($value);
+//echo ($redis->exists('message')) ? "Oui" : "Non";
 
 //suppression de la clé
 $redis->del('message');
@@ -95,10 +104,6 @@ $redis->del('message');
 </head>
 <body>
 
-<?php
-echo("bonjour")
-?>
-
 <nav class="navbar navbar-light bg-light">
     <span class="navbar-brand mb-0 h1">Le PeNdU</span>
     <span class="navbar-text">
@@ -113,9 +118,9 @@ echo("bonjour")
             <h2>Liste des joueurs</h2>
             <ul>
             <?php
-            
+
             //On affiche dynamiquement une liste la liste des joueurs
-                for($i=1; $i<=2; $i++ ){
+                for($i=1; $i<=$nbPlayers; $i++ ){
                     echo("<li>");
                     $playerName = $redis->HGET("player".$i."", "name");
                     echo($playerName);
@@ -180,10 +185,56 @@ echo("bonjour")
 
 <?php
             //Si on cliqué pour proposer une lettre 
+            
             if (isset($_POST['LETTER'])){
-                echo("testLetter");
-
+                //On vas tester tous les cas pour définir qui est le suivant
+                $_SESSION['nbTries']--;
+                if($_SESSION['nbTries'] == 0){
+                    $_SESSION['playerChoosingWord']++;
+                    if ($_SESSION['playerChoosingWord'] > $nbPlayers){
+                        $_SESSION['playerChoosingWord'] = 1;
+                    }
+                    $_SESSION['nbTries'] = 10;
+                }
+                echo("Il vous reste ".$_SESSION['nbTries']." essais !");
+                
+                $_SESSION['IsProposingLetter']++;
+                if($_SESSION['IsProposingLetter'] == $_SESSION['playerChoosingWord']){
+                    $_SESSION['IsProposingLetter']++;
+                }
+                if($_SESSION['IsProposingLetter'] > $nbPlayers){
+                    if($_SESSION['playerChoosingWord'] != 1){
+                        $_SESSION['IsProposingLetter'] = 1;
+                    }
+                    else {
+                        $_SESSION['IsProposingLetter'] = 2;
+                    }
+                }
             }
+
+            //-------------------------- DEBUG pour afficher qui joue -----------------------------
+            echo("<br />");
+            $playerChoosingWord = $redis->HGET("player".$_SESSION['playerChoosingWord'], "name");
+            echo("Is choosing word");
+            echo("<br />");
+            echo($playerChoosingWord);
+            echo("<br />");
+            echo("Are submittign letters");
+            for($i=1; $i<=$nbPlayers; $i++ ){
+                if($i != $_SESSION['playerChoosingWord'])
+                {
+                    echo("<li>");
+                    $playerName = $redis->HGET("player".$i."", "name");
+                    echo($playerName);
+                    echo("</li>");
+                }
+            }
+            echo("<br />");
+            echo("Is submitting letter now");
+            echo("<br />");
+            $playerName = $redis->HGET("player".$_SESSION['IsProposingLetter']."", "name");
+            echo($playerName);
+            //------------------------------------------------------------------------------------
 
             //Si on a cliqué pour proposer un mot
             if (isset( $_POST['WORD'])){
