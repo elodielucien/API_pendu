@@ -313,6 +313,7 @@ $redis->del('message');
          
             //teste si la lettre proposée appartient au mot 
             function letterBelongsToWord($letter) {
+                $redis->get('WordToFind');
                 $word = $redis->get('WordToFind');   //PB : REVIENT A NULL A CHAQUE ENVOI D'UNE LETTRE
                 $len = strlen($word);
                 for($i=0 ; $i<$len ; $i++) {
@@ -356,7 +357,7 @@ $redis->del('message');
                 $wordToDisplay=  $redis->get('WordToDisplay');
                 
                 for($i = 1 ; $i <= $longueurMot ; $i++) {
-                    if ($wordToFind[i] == $newLetter) {
+                    if (strcmp($wordToFind[i],$newLetter)) {
                                 $wordToDisplay[i] = $newLetter;
                     }
 
