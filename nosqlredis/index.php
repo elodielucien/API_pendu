@@ -137,16 +137,42 @@ echo("bonjour")
         <?php
 
         if (isset( $_POST['WORD'])){
+            $redis->set('WordToFind', $_POST['WORD']);
+            $redis->expire('WordToFind',60);  //TTL à 60 secondes
             $mot = $redis->get('WordToFind');
             $longueurmot = strlen($mot);
+
+            $wordToDisplay ="";
         
             for($i = 1 ; $i <= $longueurmot ; $i++)
                  {
                     
-                        echo("-");
+                    $wordToDisplay = $wordToDisplay . " _ " ;
                   }
+
+            $redis->set('WordToDisplay', $wordToDisplay);
+            $wtd = $redis->get('WordToDisplay');
+            echo($wtd);
             
          }
+         if (isset($_POST['LETTER'])){
+            $letterValue = $redis -> get('newLetter');
+          /*  if (letterBelongsToWord($letterValue)) {
+                //remplacer la lettres dans le mot aux endroits correspondants
+              //  echo(replaceInWord($letterValue));
+                $wtd = $redis->get('WordToDisplay');
+                echo($wtd);    
+                
+            }
+            else {
+                $wtd = $redis->get('WordToDisplay');
+                echo($wtd);
+                
+            }*/
+
+         }
+
+        
          
            // <span>_ &nbsp; _ &nbsp _ &nbsp E &nbsp _ &nbsp _ &nbsp _ &nbsp E &nbsp _ </span>
 
@@ -224,19 +250,14 @@ echo("bonjour")
 
             }
 
-            //Si on a cliqué pour proposer un mot
-            if (isset( $_POST['WORD'])){
-                $redis->set('WordToFind', $_POST['WORD']);
-                $redis->expire('WordToFind',60);  //TTL à 60 secondes
-                $value = $redis->get('WordToFind');
-                print($value);
+
                 
 
               
 
         
 
-            }
+            
 
 
 // FONCTIONS OPERANT SUR LA BDD AVEC REDIS --------------------------------------//
@@ -280,7 +301,24 @@ echo("bonjour")
 
             //effectue le remplacement de la lettre proposée dans le mot affiché. Retourne le mot 
             //mis à jour
-            function replaceInWord($newLetter) {
+           function replaceInWord($newLetter) {
+                 if (isset( $_POST['WORD'])){
+                $wordToFind = $redis->get('WordToFind');
+                $longueurMot =strlen($wordToFind);
+                $wordToDisplay=  $redis->get('WordToDisplay');
+                
+                for($i = 1 ; $i <= $longueurMot ; $i++) {
+                    if ($wordToFind[i] == $newLetter) {
+                                $wordToDisplay[i] = $newLetter;
+                    }
+
+                }
+                $redis->set('WordToDisplay',$wordToDisplay);
+                return $wordToDisplay;
 
             }
+        }
+
+
+          
 ?>
