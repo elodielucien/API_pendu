@@ -46,8 +46,10 @@ else {
 }
 
 
-//On crée une variable de session pour dire que le jeu est lancé
+//On crée une variable de session pour dire que le jeu est lancé et pour le mot
 $_SESSION['gameStarted'] = true; 
+$_SESSION['motAffiche'] = array();
+
 
 //On recup les points du joueur 1
 $nbPointsPlayer = $redis->HGET("player1", "points");
@@ -131,7 +133,24 @@ echo("bonjour")
         </div>
         <div class="col-sm-6">
             <h2>Mot à trouver</h2>
-            <span>_ &nbsp; _ &nbsp _ &nbsp E &nbsp _ &nbsp _ &nbsp _ &nbsp E &nbsp _ </span>
+
+        <?php
+
+        if (isset( $_POST['WORD'])){
+            $mot = $redis->get('WordToFind');
+            $longueurmot = strlen($mot);
+        
+            for($i = 1 ; $i <= $longueurmot ; $i++)
+                 {
+                    
+                        echo("-");
+                  }
+            
+         }
+         
+           // <span>_ &nbsp; _ &nbsp _ &nbsp E &nbsp _ &nbsp _ &nbsp _ &nbsp E &nbsp _ </span>
+
+        ?>
         </div>
         <div class="col-sm-3">
             <h2>Propositions</h2>
@@ -179,7 +198,7 @@ echo("bonjour")
 </html>
 
 <?php
-            //Si on cliqué pour proposer une lettre 
+            //Si on a cliqué pour proposer une lettre 
             if (isset($_POST['LETTER'])){
                 echo("testLetter");
 
@@ -188,7 +207,14 @@ echo("bonjour")
             //Si on a cliqué pour proposer un mot
             if (isset( $_POST['WORD'])){
                 $redis->set('WordToFind', $_POST['WORD']);
+                $redis->expire('WordToFind',60);  //TTL à 60 secondes
                 $value = $redis->get('WordToFind');
                 print($value);
+                
+
+              
+
+        
+
             }
 ?>
