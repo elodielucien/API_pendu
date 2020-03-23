@@ -186,7 +186,7 @@ echo("bonjour")
 //$redis->sadd('proposedLetters', 'A'); //de type Set
 //var_dump($redis->sgetmembers('proposedLetters'));
 
-//---------------------------------------------------------------------------------
+
             //Si on cliqué pour proposer une lettre : code exécuté au clic sur Valider sous "proposer une lettre"
             if (isset($_POST['LETTER'])){
                 $redis -> set('newLetter', $_POST['LETTER']);
