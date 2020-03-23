@@ -198,9 +198,29 @@ echo("bonjour")
 </html>
 
 <?php
-            //Si on a cliqué pour proposer une lettre 
+
+
+// Création de la liste de lettres déjà proposée ---------------------------------
+
+//$redis->sadd('proposedLetters', 'A'); //de type Set
+//var_dump($redis->sgetmembers('proposedLetters'));
+
+//---------------------------------------------------------------------------------
+            //Si on cliqué pour proposer une lettre : code exécuté au clic sur Valider sous "proposer une lettre"
             if (isset($_POST['LETTER'])){
-                echo("testLetter");
+                $redis -> set('newLetter', $_POST['LETTER']);
+                $letterValue = $redis -> get('newLetter');
+                print($letterValue);
+                //on vérifie si la lettre appartient au mot
+                if (letterBelongsToWord($letterValue)) {
+                    //remplacer la lettres dans le mot aux endroits correspondants
+                    $updatedWord = replaceInWord($letterValue);
+                    //afficher le mot mis à jour 
+                    //....
+                }
+                else {
+                    print("Cette lettre n'est pas dans le mot recherché");
+                }
 
             }
 
@@ -215,6 +235,52 @@ echo("bonjour")
               
 
         
+
+            }
+
+
+// FONCTIONS OPERANT SUR LA BDD AVEC REDIS --------------------------------------//
+            
+         
+            //teste si la lettre proposée appartient au mot 
+            function letterBelongsToWord($letter) {
+                $word = $redis->get('WordToFind');   //PB : REVIENT A NULL A CHAQUE ENVOI D'UNE LETTRE
+                $len = strlen($word);
+                for($i=0 ; $i<$len ; $i++) {
+                    if(strcmp($letter,$redis->getrange('WordToFind', $i, $i))==0) {
+                        return true;
+                    break;
+                    }
+                }
+                return false;
+            }
+            
+            //teste s'il reste des lettres à trouver dans le mot affiché
+            function isLettersLasting($displayedWord) {
+                $len = strlen($displayedWord);
+                for($i=0 ; $i<$len ; $i++) {
+                    if(strcmp($redis->getrange('WordToFind', $i, $i),'_')==0) {
+                        return true;
+                    break;
+                    }
+                }
+                return false;
+            }
+
+            //teste si la lettre proposée a déjà été proposée
+            function letterAlreadyIn($newLetter) {
+                if($redis->sismember('proposedLetters', $newLetter)) {
+                    return true;
+                }
+                else {
+                    return false;
+                }
+
+            }
+
+            //effectue le remplacement de la lettre proposée dans le mot affiché. Retourne le mot 
+            //mis à jour
+            function replaceInWord($newLetter) {
 
             }
 ?>
