@@ -184,8 +184,6 @@ $redis->del('message');
 </html>
 
 <?php
-
-
 // Création de la liste de lettres déjà proposée ---------------------------------
 
 //$redis->sadd('proposedLetters', 'A'); //de type Set
@@ -257,7 +255,8 @@ $redis->del('message');
             $playerName = $redis->HGET("player".$_SESSION['IsProposingLetter']."", "name");
             echo($playerName);
             //------------------------------------------------------------------------------------
-
+        }
+    }
             //Si on a cliqué pour proposer un mot
             if (isset( $_POST['WORD'])){
                 $redis->set('WordToFind', $_POST['WORD']);
