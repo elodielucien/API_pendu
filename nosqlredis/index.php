@@ -189,10 +189,14 @@ $redis->del('message');
 //$redis->sadd('proposedLetters', 'A'); //de type Set
 //var_dump($redis->sgetmembers('proposedLetters'));
 
+            //Si on a cliqué pour proposer un mot
+            if (isset( $_POST['WORD'])){
+                $_SESSION['WORD'] = $_POST['WORD'];
+                $redis->set('WordToFind', $_POST['WORD']);
+            }
 
             //Si on cliqué pour proposer une lettre : code exécuté au clic sur Valider sous "proposer une lettre"
-            if (isset($_POST['LETTER'])){
-                if (isset($_POST['LETTER'])){
+             if (isset($_POST['LETTER'])){
 
                     //On vas tester tous les cas pour définir qui est le suivant
                     /*$_SESSION['nbTries']--;
@@ -217,20 +221,22 @@ $redis->del('message');
                             $_SESSION['IsProposingLetter'] = 2;
                         }
                     }*/
-
                 $redis -> set('newLetter', $_POST['LETTER']);
                 $letterValue = $redis -> get('newLetter');
                 print($letterValue);
                 //on vérifie si la lettre appartient au mot
-                if (letterBelongsToWord($letterValue)) {
+                if (letterBelongsToWord($letterValue, $redis)) {
+                    print("vrai");
                     //remplacer la lettres dans le mot aux endroits correspondants
-                    $updatedWord = replaceInWord($letterValue);
-                    //afficher le mot mis à jour 
-                    //....
+                    $updatedWord = replaceInWord($letterValue, $redis);
+                    //TODO : afficher le mot mis à jour 
+                    //TODO : Mise à jour des points des joueurs
                 }
                 else {
                     print("Cette lettre n'est pas dans le mot recherché");
-                }
+                    //TODO : Mise à jour des points des joueurs
+                 }
+            }
 
             //-------------------------- DEBUG pour afficher qui joue -----------------------------
             echo("<br />");
@@ -255,25 +261,17 @@ $redis->del('message');
             $playerName = $redis->HGET("player".$_SESSION['IsProposingLetter']."", "name");
             echo($playerName);
             //------------------------------------------------------------------------------------
-        }
-    }
-            //Si on a cliqué pour proposer un mot
-            if (isset( $_POST['WORD'])){
-                $redis->set('WordToFind', $_POST['WORD']);
-                $value = $redis->get('WordToFind');
-                print($value);
-            }
 
 
 // FONCTIONS OPERANT SUR LA BDD AVEC REDIS --------------------------------------//
             
          
             //teste si la lettre proposée appartient au mot 
-            function letterBelongsToWord($letter) {
-                $word = $redis->get('WordToFind');   //PB : REVIENT A NULL A CHAQUE ENVOI D'UNE LETTRE
+            function letterBelongsToWord($letter, $redis) {
+                $word = $redis->get('WordToFind');//$_SESSION['WORD'];  
                 $len = strlen($word);
                 for($i=0 ; $i<$len ; $i++) {
-                    if(strcmp($letter,$redis->getrange('WordToFind', $i, $i))==0) {
+                    if(strcmp($word[$i],$letter)==0) {
                         return true;
                     break;
                     }
@@ -282,7 +280,7 @@ $redis->del('message');
             }
             
             //teste s'il reste des lettres à trouver dans le mot affiché
-            function isLettersLasting($displayedWord) {
+            function isLettersLasting($displayedWord, $redis) {
                 $len = strlen($displayedWord);
                 for($i=0 ; $i<$len ; $i++) {
                     if(strcmp($redis->getrange('WordToFind', $i, $i),'_')==0) {
@@ -294,7 +292,7 @@ $redis->del('message');
             }
 
             //teste si la lettre proposée a déjà été proposée
-            function letterAlreadyIn($newLetter) {
+            function letterAlreadyIn($newLetter, $redis) {
                 if($redis->sismember('proposedLetters', $newLetter)) {
                     return true;
                 }
