@@ -176,8 +176,6 @@ $redis->del('message');
               //On vas tester tous les cas pour définir qui est le suivant
                     /*$_SESSION['nbTries']--;
                     if($_SESSION['nbTries'] == 0){
-                        $redis->incrBy('points:'.$_SESSION['playerChoosingWord'], 10);
-                        var_dump($redis->sMembers('points:'.$_SESSION['playerChoosingWord']));
                         $_SESSION['playerChoosingWord']++;
                         if ($_SESSION['playerChoosingWord'] > $nbPlayers){
                             $_SESSION['playerChoosingWord'] = 1;
