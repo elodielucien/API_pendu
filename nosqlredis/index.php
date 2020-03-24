@@ -24,7 +24,7 @@ catch (Exception $e) {
 $nbPlayers = 4;
 //On test si on lance le jeu pour la première fois
 if(!isset($_SESSION['gameStarted'])){
-
+    print("Initialisation du jeu");
     //On crée les différents joueur
 
     $redis->HMSET("player1", array(
@@ -64,6 +64,11 @@ if(!isset($_SESSION['gameStarted'])){
         $_SESSION['IsProposingLetter'] = 2;
     }
 
+    //On initialise les points de tous les joueurs
+    for ($i=1; $i<=$nbPlayers; $i++){
+        $redis->sAdd('points'.$i, 0);
+    }
+
     $_SESSION['gameStarted'] = true; 
 }
 
@@ -76,19 +81,20 @@ if(!isset($_SESSION['gameStarted'])){
 
 // -------------------------------------
 
-
 // mise à jour de la valeur
-$redis->set('message', 'Coucou');
+$myValue = $redis->set('message', 'Coucou');
 
 // recuperation de la valeur
 $value = $redis->get('message');
 
 // affichage de la valeur
-//print($value);
+print($value);
 //echo ($redis->exists('message')) ? "Oui" : "Non";
 
 //suppression de la clé
 $redis->del('message');
+
+
 
 ?>
 
@@ -185,18 +191,34 @@ $redis->del('message');
 
 <?php
 // Création de la liste de lettres déjà proposée ---------------------------------
-
 //$redis->sadd('proposedLetters', 'A'); //de type Set
 //var_dump($redis->sgetmembers('proposedLetters'));
 
 //---------------------------------------------------------------------------------
             //Si on cliqué pour proposer une lettre : code exécuté au clic sur Valider sous "proposer une lettre"
             if (isset($_POST['LETTER'])){
-                if (isset($_POST['LETTER'])){
+                /*echo($_POST['WORD']);
+                $redis->set('newLetter', $_POST['LETTER']);
+                $letterValue = $redis->get('newLetter');
+                print($letterValue);
+                //on vérifie si la lettre appartient au mot
+                if (letterBelongsToWord($letterValue)) {
+                    //remplacer la lettres dans le mot aux endroits correspondants
+                    $updatedWord = replaceInWord($letterValue);
+                    //afficher le mot mis à jour 
+                    //....
+                }
+                else {
+                    print("Cette lettre n'est pas dans le mot recherché");
+                }*/
 
-                    //On vas tester tous les cas pour définir qui est le suivant
-                    /*$_SESSION['nbTries']--;
+                //On vas tester tous les cas pour définir qui est le suivant
+                    $_SESSION['nbTries']--;
                     if($_SESSION['nbTries'] == 0){
+                        //On ajoute dix points aux joueur qui a proposé le mot
+                        $redis->incrBy('points:'.$_SESSION['playerChoosingWord'], 10);
+                        var_dump($redis->sMembers('points:'.$_SESSION['playerChoosingWord']));
+                        
                         $_SESSION['playerChoosingWord']++;
                         if ($_SESSION['playerChoosingWord'] > $nbPlayers){
                             $_SESSION['playerChoosingWord'] = 1;
@@ -216,53 +238,39 @@ $redis->del('message');
                         else {
                             $_SESSION['IsProposingLetter'] = 2;
                         }
-                    }*/
-
-                $redis -> set('newLetter', $_POST['LETTER']);
-                $letterValue = $redis -> get('newLetter');
-                print($letterValue);
-                //on vérifie si la lettre appartient au mot
-                if (letterBelongsToWord($letterValue)) {
-                    //remplacer la lettres dans le mot aux endroits correspondants
-                    $updatedWord = replaceInWord($letterValue);
-                    //afficher le mot mis à jour 
-                    //....
-                }
-                else {
-                    print("Cette lettre n'est pas dans le mot recherché");
-                }
-
-            //-------------------------- DEBUG pour afficher qui joue -----------------------------
-            echo("<br />");
-            $playerChoosingWord = $redis->HGET("player".$_SESSION['playerChoosingWord'], "name");
-            echo("Is choosing word");
-            echo("<br />");
-            echo($playerChoosingWord);
-            echo("<br />");
-            echo("Are submittign letters");
-            for($i=1; $i<=$nbPlayers; $i++ ){
-                if($i != $_SESSION['playerChoosingWord'])
-                {
-                    echo("<li>");
-                    $playerName = $redis->HGET("player".$i."", "name");
-                    echo($playerName);
-                    echo("</li>");
-                }
-            }
-            echo("<br />");
-            echo("Is submitting letter now");
-            echo("<br />");
-            $playerName = $redis->HGET("player".$_SESSION['IsProposingLetter']."", "name");
-            echo($playerName);
-            //------------------------------------------------------------------------------------
-        }
+                    }
+        
     }
-            //Si on a cliqué pour proposer un mot
-            if (isset( $_POST['WORD'])){
-                $redis->set('WordToFind', $_POST['WORD']);
-                $value = $redis->get('WordToFind');
-                print($value);
-            }
+     //-------------------------- DEBUG pour afficher qui joue -----------------------------
+     echo("<br />");
+     $playerChoosingWord = $redis->HGET("player".$_SESSION['playerChoosingWord'], "name");
+     echo("Is choosing word");
+     echo("<br />");
+     echo($playerChoosingWord);
+     echo("<br />");
+     echo("Are submittign letters");
+     for($i=1; $i<=$nbPlayers; $i++ ){
+         if($i != $_SESSION['playerChoosingWord'])
+         {
+             echo("<li>");
+             $playerName = $redis->HGET("player".$i."", "name");
+             echo($playerName);
+             echo("</li>");
+         }
+     }
+     echo("<br />");
+     echo("Is submitting letter now");
+     echo("<br />");
+     $playerName = $redis->HGET("player".$_SESSION['IsProposingLetter']."", "name");
+     echo($playerName);
+     //------------------------------------------------------------------------------------
+
+    //Si on a cliqué pour proposer un mot
+    if (isset($_POST['WORD'])){
+        $redis->set('WordToFind', $_POST['WORD']);
+        $value = $redis->get('WordToFind');
+        print($value);
+    }
 
 
 // FONCTIONS OPERANT SUR LA BDD AVEC REDIS --------------------------------------//
