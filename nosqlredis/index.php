@@ -185,9 +185,12 @@ $redis->del('message');
 
 <?php
 // Création de la liste de lettres déjà proposée ---------------------------------
+//$redis->sAdd('key', 'value');
+//echo("Value set : ");
+//var_dump($redis->sMembers('key'));
 
-//$redis->sadd('proposedLetters', 'A'); //de type Set
-//var_dump($redis->sgetmembers('proposedLetters'));
+$redis->sAdd('letters','a'); //de type Set
+var_dump($redis->sMembers('letters'));
 
             //Si on a cliqué pour proposer un mot
             if (isset( $_POST['WORD'])){
@@ -293,7 +296,7 @@ $redis->del('message');
 
             //teste si la lettre proposée a déjà été proposée
             function letterAlreadyIn($newLetter, $redis) {
-                if($redis->sismember('proposedLetters', $newLetter)) {
+                if($redis->sismember('letters', $newLetter)) {
                     return true;
                 }
                 else {
