@@ -193,30 +193,32 @@ $redis->del('message');
 
             $redis -> set('newLetter', $_POST['LETTER']);
             $letterValue = $redis -> get('newLetter');
+            
+            //On vérifie que le TTL du mot n'a pas été dépassé 
+            if($redis->TTL('WordToFind')>0) {
+                //on vérifie que la lettre n'a pas déjà été proposée
+                if (letterAlreadyIn($letterValue, $redis)==false) {
+                    //création + ajout à la base de données dans un Set : lettres proposées
+                    $redis->sAdd('letters', $letterValue); //de type Set           
+                    if (letterBelongsToWord($letterValue,$redis)) {
+                        //remplacer la lettres dans le mot aux endroits correspondants et afficher
+                        showWordToDisplay(replaceInWord($letterValue,$redis));
+                  }
+                   else {                    
+                        showWordToDisplay(replaceInWord(".",$redis));
+                        print( "la lettre n'est pas dans le mot");                    
+                  }
 
-            //on vérifie que la lettre n'a pas déjà été proposée
-            if (letterAlreadyIn($letterValue, $redis)==false) {
-                //création + ajout à la base de données dans un Set : lettres proposées
-                $redis->sAdd('letters', $letterValue); //de type Set           
-                if (letterBelongsToWord($letterValue,$redis)) {
-                    //remplacer la lettres dans le mot aux endroits correspondants et afficher
-                    showWordToDisplay(replaceInWord($letterValue,$redis));
-                }
-                else {                    
-                    showWordToDisplay(replaceInWord(".",$redis));
-                    print( "la lettre n'est pas dans le mot");                    
-                }
-
-            }
+             }
             else{ 
                 print("Cette lettre a déjà été proposée");
+             }
             }
-
+            else {
+                print("Le temps est écoulé !");
+            }
          }
-
-        
-         
-         
+    
 
         ?>
         </div>
@@ -233,7 +235,7 @@ $redis->del('message');
     <div class="row">
         <div class="col-sm-6">
             <h2>Temps restant</h2>
-            <span>45 secondes</span>
+            <span> <?php print($redis->TTL('WordToFind')); ?> </span>
         </div>
         <div class="col-sm-6">
             <h2>Nombre d'essais restant</h2>
