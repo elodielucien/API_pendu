@@ -140,6 +140,12 @@ $redis->del('message');
         <?php
 
         if (isset( $_POST['WORD'])){
+            //on vide d'abord la liste de lettres déjà proposées du mot précédent
+            $proposedLetters = $redis->sMembers('letters');
+            $lenSet = $redis->sCard('letters');
+            for($i = 0 ; $i < $lenSet ; $i++) {
+                $redis->sRem('letters', $proposedLetters[$i]);
+            }
 
             $redis->set('WordToFind', $_POST['WORD']);
             //TTL à 60 secondes
@@ -184,19 +190,26 @@ $redis->del('message');
                             $_SESSION['IsProposingLetter'] = 2;
                         }
                     }*/
+
             $redis -> set('newLetter', $_POST['LETTER']);
             $letterValue = $redis -> get('newLetter');
-            
-           if (letterBelongsToWord($letterValue,$redis)) {
-                //remplacer la lettres dans le mot aux endroits correspondants
-                //afficher
-                showWordToDisplay(replaceInWord($letterValue,$redis));
+
+            //on vérifie que la lettre n'a pas déjà été proposée
+            if (letterAlreadyIn($letterValue, $redis)==false) {
+                //création + ajout à la base de données dans un Set : lettres proposées
+                $redis->sAdd('letters', $letterValue); //de type Set           
+                if (letterBelongsToWord($letterValue,$redis)) {
+                    //remplacer la lettres dans le mot aux endroits correspondants et afficher
+                    showWordToDisplay(replaceInWord($letterValue,$redis));
+                }
+                else {                    
+                    showWordToDisplay(replaceInWord(".",$redis));
+                    print( "la lettre n'est pas dans le mot");                    
+                }
+
             }
-            else {
-                
-                showWordToDisplay(replaceInWord(".",$redis));
-                print( "la lettre n'est pas dans le mot");
-                
+            else{ 
+                print("Cette lettre a déjà été proposée");
             }
 
          }
@@ -253,19 +266,7 @@ $redis->del('message');
 </html>
 
 <?php
-// Création de la liste de lettres déjà proposée ---------------------------------
-
-//$redis->sadd('proposedLetters', 'A'); //de type Set
-//var_dump($redis->sgetmembers('proposedLetters'));
-
-            //Si on a cliqué pour proposer un mot
-            if (isset( $_POST['WORD'])){
-                $_SESSION['WORD'] = $_POST['WORD'];
-                $redis->set('WordToFind', $_POST['WORD']);
-            }
-
-            
-
+  
             //-------------------------- DEBUG pour afficher qui joue -----------------------------
             echo("<br />");
             $playerChoosingWord = $redis->HGET("player".$_SESSION['playerChoosingWord'], "name");
@@ -321,13 +322,12 @@ $redis->del('message');
 
             //teste si la lettre proposée a déjà été proposée
             function letterAlreadyIn($newLetter, $redis) {
-                if($redis->sismember('proposedLetters', $newLetter)) {
+                if($redis->sismember('letters', $newLetter)) {
                     return true;
                 }
                 else {
                     return false;
                 }
-
             }
 
             //effectue le remplacement de la lettre proposée dans le mot affiché. Retourne le mot 
@@ -340,7 +340,7 @@ $redis->del('message');
                 $wordToDisplay=$redis->get('WordToDisplay');
             
                 
-                for($i = 0 ; $i <= $longueurMot ; $i++) {
+                for($i = 0 ; $i < $longueurMot ; $i++) {
                    if ((strcmp($wordToFind[$i],$newLetter))==0) {
                                 $wordToDisplay[$i] = $newLetter;
                     }
