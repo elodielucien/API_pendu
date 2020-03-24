@@ -225,10 +225,11 @@ $redis->del('message');
         <div class="col-sm-3">
             <h2>Propositions</h2>
             <ul>
-                <li>A</li>
-                <li>E</li>
-                <li>C</li>
-                <li>J A M B O N</li>
+                <?php foreach($redis->sMembers('letters') as $letter) {  ?>
+                    <li> <?php print($letter) ?> </li>
+                  <?php
+                  }
+                ?>
             </ul>
         </div>
     </div>
