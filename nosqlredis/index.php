@@ -7,7 +7,6 @@ Predis\Autoloader::register();
 
 // Connexion à Redis
 try {
-
     $redis = new Predis\Client(array(
         "scheme" => "tcp",
         "host" => "SG-Pendu-32039.servers.mongodirector.com:6379", //changer le nom de la base
