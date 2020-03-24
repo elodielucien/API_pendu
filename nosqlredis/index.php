@@ -227,9 +227,9 @@ $redis->del('message');
 </html>
 
 <?php
+
 // Création de la liste de lettres déjà proposée ---------------------------------
 //$redis->sAdd('key', 'value');
-//echo("Value set : ");
 //var_dump($redis->sMembers('key'));
 
 $redis->sAdd('letters','a'); //de type Set
@@ -237,7 +237,7 @@ var_dump($redis->sMembers('letters'));
 
             //Si on a cliqué pour proposer un mot
             if (isset( $_POST['WORD'])){
-                $_SESSION['WORD'] = $_POST['WORD'];
+                //$_SESSION['WORD'] = $_POST['WORD'];
                 $redis->set('WordToFind', $_POST['WORD']);
             }
 
@@ -268,13 +268,13 @@ var_dump($redis->sMembers('letters'));
                         }
                     }*/
                 $redis -> set('newLetter', $_POST['LETTER']);
-                $letterValue = $redis -> get('newLetter');
-                print($letterValue);
                 //on vérifie si la lettre appartient au mot
                 if (letterBelongsToWord($letterValue, $redis)) {
                     print("vrai");
                     //remplacer la lettres dans le mot aux endroits correspondants
                     $updatedWord = replaceInWord($letterValue, $redis);
+                    print('mot mis à jour : ');
+                    print($updatedWord);
                     //TODO : afficher le mot mis à jour 
                     //TODO : Mise à jour des points des joueurs
                 }
@@ -350,7 +350,7 @@ var_dump($redis->sMembers('letters'));
 
             //effectue le remplacement de la lettre proposée dans le mot affiché. Retourne le mot 
             //mis à jour
-           function replaceInWord($newLetter) {
+           function replaceInWord($newLetter, $redis) {
                  if (isset( $_POST['WORD'])){
                 $wordToFind = $redis->get('WordToFind');
                 $longueurMot =strlen($wordToFind);
