@@ -171,6 +171,7 @@ $redis->del('message');
                 if (!goodCharacter($_POST['LETTER'])) {
 
                     showWordToDisplay(replaceInWord(".", $redis));
+                    echo'<br/>';
                     print("La lettre entrée n'est pas valide");
                 }
 
@@ -196,7 +197,9 @@ $redis->del('message');
                                 }
                                 $redis->set('nbTries', 10);
                             }
+                       
                             echo ("Il vous reste ".$nbTries." essais !");
+                            echo'<br/>';
 
                             //création + ajout à la base de données dans un Set : lettres proposées
                             $redis->sAdd('letters', $letterValue); //de type Set           
@@ -206,6 +209,7 @@ $redis->del('message');
                                 showWordToDisplay(replaceInWord($letterValue, $redis));
                             } else {
                                 showWordToDisplay(replaceInWord(".", $redis));
+                                echo'<br/>';
                                 print("la lettre n'est pas dans le mot");
                             }
 
@@ -221,7 +225,9 @@ $redis->del('message');
                                 }
                             }
                         } else {
-                            print("Cette lettre a déjà été proposée");
+                            showWordToDisplay(replaceInWord(".", $redis));
+                            echo'<br/>';
+                            echo("Cette lettre a déjà été proposée");
                         }
                     } else {
                         print("Le temps est écoulé !");
@@ -250,8 +256,8 @@ $redis->del('message');
             </div>
             <div class="col-sm-6">
                 <h2>Nombre d'essais restant</h2>
-                <span><?php $nb = $redis->get('nbTries');
-                        print($nb . " essais"); ?></span>
+                <span><?php $nbTries = $redis->get('nbTries');
+                        print($nbTries . " essais"); ?></span>
             </div>
         </div>
         <div class="row">
