@@ -142,7 +142,10 @@ $redis->del('message');
                     for ($i = 0; $i < $lenSet; $i++) {
                         $redis->sRem('letters', $proposedLetters[$i]);
                     }
-
+                    if (!goodWord($_POST['WORD'])) {
+                        print("Le mot n'est pas valide, réessayez");
+                     }
+                     else {
                     $redis->set('WordToFind', $_POST['WORD']);
                     //TTL à 60 secondes
                     $redis->expire('WordToFind', 60);
@@ -161,11 +164,21 @@ $redis->del('message');
                     showWordToDisplay($wtd);
                     $redis->set('nbTries', 10);
                 }
+            }
 
                 if (isset($_POST['LETTER'])) {
 
+                if (!goodCharacter($_POST['LETTER'])) {
+
+                    showWordToDisplay(replaceInWord(".", $redis));
+                    print("La lettre entrée n'est pas valide");
+                }
+
+                else{
+
                     $redis->set('newLetter', $_POST['LETTER']);
                     $letterValue = $redis->get('newLetter');
+
 
                     //On vérifie que le TTL du mot n'a pas été dépassé 
                     if ($redis->TTL('WordToFind') > 0) {
@@ -214,6 +227,7 @@ $redis->del('message');
                         print("Le temps est écoulé !");
                     }
                 }
+            }
 
 
                 ?>
@@ -360,6 +374,32 @@ function showWordToDisplay($wordToDisplay)
     for ($i = 0; $i < strlen($wordToDisplay); $i++) {
         print($wordToDisplay[$i] . " ");
     }
+}
+
+//verifie si un caractère est valide, retourne un boolean
+function goodCharacter($character) {
+
+    if (preg_match("#[a-zA-Z]#", $character)){ 
+
+        return TRUE; 
+    }
+      else{ 
+           return FALSE; 
+     }
+}
+
+// vérifie si le mot est valide, retourne un boolean
+function goodWord($word){
+    $bool = true;
+    for ($i=0;$i<strlen($word);$i++){
+        if (preg_match("#[a-zA-Z]#", $word)){
+                $bool=true;
+        }
+        else {
+            $bool=false;
+        }
+    }
+    return $bool;
 }
 
 ?>
