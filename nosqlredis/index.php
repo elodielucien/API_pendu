@@ -70,6 +70,9 @@ if (!isset($_SESSION['gameStarted'])) {
     }
 
     $_SESSION['gameStarted'] = true;
+
+    $errorMessage = "";
+    $MyWord = "";
 }
 
 //-------------------------- DEBUG pour afficher qui joue -----------------------------
@@ -120,6 +123,116 @@ $redis->del('message');
 
 ?>
 
+
+<?php
+
+if (isset($_POST['WORD'])) {
+    //on vide d'abord la liste de lettres déjà proposées du mot précédent
+    $proposedLetters = $redis->sMembers('letters');
+    $lenSet = $redis->sCard('letters');
+    for ($i = 0; $i < $lenSet; $i++) {
+        $redis->sRem('letters', $proposedLetters[$i]);
+    }
+    if (!goodWord($_POST['WORD'])) {
+        print("Le mot n'est pas valide, réessayez");
+    } else {
+        $redis->set('WordToFind', $_POST['WORD']);
+        //TTL à 60 secondes
+        $redis->expire('WordToFind', 60);
+        $mot = $redis->get('WordToFind');
+        $longueurmot = strlen($mot);
+
+        $wordToDisplay = "";
+
+        for ($i = 1; $i <= $longueurmot; $i++) {
+
+            $wordToDisplay = $wordToDisplay . "_";
+        }
+
+        $redis->set('WordToDisplay', $wordToDisplay);
+        $wtd = $redis->get('WordToDisplay');
+        $MyWord = showWordToDisplay($wtd);
+        $redis->set('nbTries', 10);
+    }
+}
+
+if (isset($_POST['LETTER'])) {
+
+    if (!goodCharacter($_POST['LETTER'])) {
+        $MyWord = showWordToDisplay(replaceInWord(".", $redis));
+        echo '<br/>';
+        $errorMessage = "La lettre entrée n'est pas valide";
+    } else {
+
+        $redis->set('newLetter', $_POST['LETTER']);
+        $letterValue = $redis->get('newLetter');
+
+
+        //On vérifie que le TTL du mot n'a pas été dépassé 
+        if ($redis->TTL('WordToFind') > 0) {
+
+            //on vérifie que la lettre n'a pas déjà été proposée
+            if (letterAlreadyIn($letterValue, $redis) == false) {
+                //On vas tester tous les cas pour définir qui est le suivant
+
+                $redis->decrby('nbTries', 1);
+                $nbTries = $redis->get('nbTries');
+                if ($nbTries == 0) {
+                    //Si il n'y a plus d'essais, on ajoute dix points au joueur qui a proposé le mot
+                    $redis->incrBy('points:' . $_SESSION['playerChoosingWord'], 10);
+
+                    $_SESSION['playerChoosingWord']++;
+                    if ($_SESSION['playerChoosingWord'] > $nbPlayers) {
+                        $_SESSION['playerChoosingWord'] = 1;
+                    }
+                    $redis->set('nbTries', "Le jeu n'a pas commencé");
+                }
+
+                //création + ajout à la base de données dans un Set : lettres proposées
+                $redis->sAdd('letters', $letterValue); //de type Set           
+                if (letterBelongsToWord($letterValue, $redis)) {
+
+                    //remplacer la lettres dans le mot aux endroits correspondants et afficher
+                    $MyWord = showWordToDisplay(replaceInWord($letterValue, $redis));
+                } else {
+                    $MyWord = showWordToDisplay(replaceInWord(".", $redis));
+                    echo '<br/>';
+                    $errorMessage = "la lettre n'est pas dans le mot";
+                }
+
+                $_SESSION['IsProposingLetter']++;
+                echo ("Il propose une lettre Joueur : " . $_SESSION['IsProposingLetter']);
+                if ($_SESSION['IsProposingLetter'] == $_SESSION['playerChoosingWord']) {
+                    $_SESSION['IsProposingLetter']++;
+                }
+                if ($_SESSION['IsProposingLetter'] > $nbPlayers) {
+                    if ($_SESSION['playerChoosingWord'] != 1) {
+                        $_SESSION['IsProposingLetter'] = 1;
+                    } else {
+                        $_SESSION['IsProposingLetter'] = 2;
+                    }
+                }
+            } else {
+                $MyWord = showWordToDisplay(replaceInWord(".", $redis));
+                echo '<br/>';
+                $errorMessage = "Cette lettre a déjà été proposée";
+            }
+        } else {
+            print("Le temps est écoulé !");
+            //On ajoute dix points au joueur qui a proposé le mot
+            $redis->incrBy('points:' . $_SESSION['playerChoosingWord'], 10);
+
+            //On change le joueur qui va proposer le mot
+            $_SESSION['playerChoosingWord']++;
+            if ($_SESSION['playerChoosingWord'] > $nbPlayers) {
+                $_SESSION['playerChoosingWord'] = 1;
+            }
+            $redis->set('nbTries', "Le jeu n'a pas commencé");
+        }
+    }
+}
+
+?>
 <!doctype html>
 <html lang="fr">
 
@@ -137,9 +250,9 @@ $redis->del('message');
         <span class="navbar-brand mb-0 h1">Le PeNdU</span>
         <span class="navbar-text">
             <?php
-            $name = $redis->HGET("player" .$_SESSION['IsProposingLetter']. "", "name");
-            $points = $redis->get("points:".$_SESSION['IsProposingLetter']);
-            print("Bonjour " . $name . " ton score est ".$points." points !"); ?>
+            $name = $redis->HGET("player" . $_SESSION['IsProposingLetter'] . "", "name");
+            $points = $redis->get("points:" . $_SESSION['IsProposingLetter']);
+            print("Bonjour " . $name . " ton score est " . $points . " points !"); ?>
         </span>
     </nav>
 
@@ -163,116 +276,12 @@ $redis->del('message');
             </div>
             <div class="col-sm-6">
                 <h2>Mot à trouver</h2>
-
                 <?php
-
-                if (isset($_POST['WORD'])) {
-                    //on vide d'abord la liste de lettres déjà proposées du mot précédent
-                    $proposedLetters = $redis->sMembers('letters');
-                    $lenSet = $redis->sCard('letters');
-                    for ($i = 0; $i < $lenSet; $i++) {
-                        $redis->sRem('letters', $proposedLetters[$i]);
-                    }
-                    if (!goodWord($_POST['WORD'])) {
-                        print("Le mot n'est pas valide, réessayez");
-                    } else {
-                        $redis->set('WordToFind', $_POST['WORD']);
-                        //TTL à 60 secondes
-                        $redis->expire('WordToFind', 60);
-                        $mot = $redis->get('WordToFind');
-                        $longueurmot = strlen($mot);
-
-                        $wordToDisplay = "";
-
-                        for ($i = 1; $i <= $longueurmot; $i++) {
-
-                            $wordToDisplay = $wordToDisplay . "_";
-                        }
-
-                        $redis->set('WordToDisplay', $wordToDisplay);
-                        $wtd = $redis->get('WordToDisplay');
-                        showWordToDisplay($wtd);
-                        $redis->set('nbTries', 10);
-                    }
+                for ($i = 0; $i < strlen($MyWord); $i++) {
+                    echo ($MyWord[$i] . " ");
                 }
 
-                if (isset($_POST['LETTER'])) {
-
-                    if (!goodCharacter($_POST['LETTER'])) {
-
-                        showWordToDisplay(replaceInWord(".", $redis));
-                        echo '<br/>';
-                        print("La lettre entrée n'est pas valide");
-                    } else {
-
-                        $redis->set('newLetter', $_POST['LETTER']);
-                        $letterValue = $redis->get('newLetter');
-
-
-                        //On vérifie que le TTL du mot n'a pas été dépassé 
-                        if ($redis->TTL('WordToFind') > 0) {
-
-                            //on vérifie que la lettre n'a pas déjà été proposée
-                            if (letterAlreadyIn($letterValue, $redis) == false) {
-                                //On vas tester tous les cas pour définir qui est le suivant
-
-                                $redis->decrby('nbTries', 1);
-                                $nbTries = $redis->get('nbTries');
-                                if ($nbTries == 0) {
-                                    //Si il n'y a plus d'essais, on ajoute dix points au joueur qui a proposé le mot
-                                    $redis->incrBy('points:' . $_SESSION['playerChoosingWord'], 10);
-
-                                    $_SESSION['playerChoosingWord']++;
-                                    if ($_SESSION['playerChoosingWord'] > $nbPlayers) {
-                                        $_SESSION['playerChoosingWord'] = 1;
-                                    }
-                                    $redis->set('nbTries', "Le jeu n'a pas commencé");
-                                }
-
-                                //création + ajout à la base de données dans un Set : lettres proposées
-                                $redis->sAdd('letters', $letterValue); //de type Set           
-                                if (letterBelongsToWord($letterValue, $redis)) {
-
-                                    //remplacer la lettres dans le mot aux endroits correspondants et afficher
-                                    showWordToDisplay(replaceInWord($letterValue, $redis));
-                                } else {
-                                    showWordToDisplay(replaceInWord(".", $redis));
-                                    echo '<br/>';
-                                    print("la lettre n'est pas dans le mot");
-                                }
-
-                                $_SESSION['IsProposingLetter']++;
-                                if ($_SESSION['IsProposingLetter'] == $_SESSION['playerChoosingWord']) {
-                                    $_SESSION['IsProposingLetter']++;
-                                }
-                                if ($_SESSION['IsProposingLetter'] > $nbPlayers) {
-                                    if ($_SESSION['playerChoosingWord'] != 1) {
-                                        $_SESSION['IsProposingLetter'] = 1;
-                                    } else {
-                                        $_SESSION['IsProposingLetter'] = 2;
-                                    }
-                                }
-                            } else {
-                                showWordToDisplay(replaceInWord(".", $redis));
-                                echo '<br/>';
-                                echo ("Cette lettre a déjà été proposée");
-                            }
-                        } else {
-                            print("Le temps est écoulé !");
-                            //On ajoute dix points au joueur qui a proposé le mot
-                            $redis->incrBy('points:' . $_SESSION['playerChoosingWord'], 10);
-
-                            //On change le joueur qui va proposer le mot
-                            $_SESSION['playerChoosingWord']++;
-                            if ($_SESSION['playerChoosingWord'] > $nbPlayers) {
-                                $_SESSION['playerChoosingWord'] = 1;
-                            }
-                            $redis->set('nbTries', "Le jeu n'a pas commencé");
-                        }
-                    }
-                }
-
-
+                echo ($errorMessage);
                 ?>
             </div>
             <div class="col-sm-3">
@@ -399,9 +408,12 @@ function replaceInWord($newLetter, $redis)
 
 function showWordToDisplay($wordToDisplay)
 {
+    $word = "";
     for ($i = 0; $i < strlen($wordToDisplay); $i++) {
-        print($wordToDisplay[$i] . " ");
+
+        $word[$i] = $wordToDisplay[$i] . " ";
     }
+    return $word;
 }
 
 //verifie si un caractère est valide, retourne un boolean
