@@ -62,8 +62,38 @@ if (!isset($_SESSION['gameStarted'])) {
         $_SESSION['IsProposingLetter'] = 2;
     }
 
+    //On initialise le nb de points pour chaque joueur
+    for ($i = 1; $i <= $nbPlayers; $i++) {
+        $redis->set("points:" . $i, 0);
+        //$nbPoints = $redis->get("points:".$i);
+        //echo("NbPoints ".$i." ".$nbPoints);
+    }
+
     $_SESSION['gameStarted'] = true;
 }
+
+//-------------------------- DEBUG pour afficher qui joue -----------------------------
+/*echo ("<br />");
+$playerChoosingWord = $redis->HGET("player" . $_SESSION['playerChoosingWord'], "name");
+echo ("Is choosing word");
+echo ("<br />");
+echo ($playerChoosingWord);
+echo ("<br />");
+echo ("Are submittign letters");
+for ($i = 1; $i <= $nbPlayers; $i++) {
+    if ($i != $_SESSION['playerChoosingWord']) {
+        echo ("<li>");
+        $playerName = $redis->HGET("player" . $i . "", "name");
+        echo ($playerName);
+        echo ("</li>");
+    }
+}
+echo ("<br />");
+echo ("Is submitting letter now");
+echo ("<br />");
+$playerName = $redis->HGET("player" . $_SESSION['IsProposingLetter'] . "", "name");
+echo ($playerName);*/
+//------------------------------------------------------------------------------------
 
 
 //On affiche les infos joueur1
@@ -107,8 +137,9 @@ $redis->del('message');
         <span class="navbar-brand mb-0 h1">Le PeNdU</span>
         <span class="navbar-text">
             <?php
-            $name = $redis->HGET("player".$i."", "name");
-            print("Bonjour " . $name . " ton score est 10 points !"); ?>
+            $name = $redis->HGET("player" .$_SESSION['IsProposingLetter']. "", "name");
+            $points = $redis->get("points:".$_SESSION['IsProposingLetter']);
+            print("Bonjour " . $name . " ton score est ".$points." points !"); ?>
         </span>
     </nav>
 
@@ -188,11 +219,14 @@ $redis->del('message');
                                 $redis->decrby('nbTries', 1);
                                 $nbTries = $redis->get('nbTries');
                                 if ($nbTries == 0) {
+                                    //Si il n'y a plus d'essais, on ajoute dix points au joueur qui a proposé le mot
+                                    $redis->incrBy('points:' . $_SESSION['playerChoosingWord'], 10);
+
                                     $_SESSION['playerChoosingWord']++;
                                     if ($_SESSION['playerChoosingWord'] > $nbPlayers) {
                                         $_SESSION['playerChoosingWord'] = 1;
                                     }
-                                    $redis->set('nbTries', 10);
+                                    $redis->set('nbTries', "Le jeu n'a pas commencé");
                                 }
 
                                 //création + ajout à la base de données dans un Set : lettres proposées
@@ -225,6 +259,15 @@ $redis->del('message');
                             }
                         } else {
                             print("Le temps est écoulé !");
+                            //On ajoute dix points au joueur qui a proposé le mot
+                            $redis->incrBy('points:' . $_SESSION['playerChoosingWord'], 10);
+
+                            //On change le joueur qui va proposer le mot
+                            $_SESSION['playerChoosingWord']++;
+                            if ($_SESSION['playerChoosingWord'] > $nbPlayers) {
+                                $_SESSION['playerChoosingWord'] = 1;
+                            }
+                            $redis->set('nbTries', "Le jeu n'a pas commencé");
                         }
                     }
                 }
@@ -290,30 +333,6 @@ $redis->del('message');
 </html>
 
 <?php
-
-//-------------------------- DEBUG pour afficher qui joue -----------------------------
-echo ("<br />");
-$playerChoosingWord = $redis->HGET("player" . $_SESSION['playerChoosingWord'], "name");
-echo ("Is choosing word");
-echo ("<br />");
-echo ($playerChoosingWord);
-echo ("<br />");
-echo ("Are submittign letters");
-for ($i = 1; $i <= $nbPlayers; $i++) {
-    if ($i != $_SESSION['playerChoosingWord']) {
-        echo ("<li>");
-        $playerName = $redis->HGET("player" . $i . "", "name");
-        echo ($playerName);
-        echo ("</li>");
-    }
-}
-echo ("<br />");
-echo ("Is submitting letter now");
-echo ("<br />");
-$playerName = $redis->HGET("player" . $_SESSION['IsProposingLetter'] . "", "name");
-echo ($playerName);
-//------------------------------------------------------------------------------------
-
 
 // FONCTIONS OPERANT SUR LA BDD AVEC REDIS --------------------------------------//
 
