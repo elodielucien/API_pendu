@@ -73,6 +73,9 @@ if (!isset($_SESSION['gameStarted'])) {
 
     $errorMessage = "";
     $MyWord = "";
+
+    $btnWordIsEnabled = "true";
+    $btnLetterIsEnabled = "false";
 }
 
 //-------------------------- DEBUG pour afficher qui joue -----------------------------
@@ -133,6 +136,7 @@ if (isset($_POST['WORD'])) {
     for ($i = 0; $i < $lenSet; $i++) {
         $redis->sRem('letters', $proposedLetters[$i]);
     }
+
     if (!goodWord($_POST['WORD'])) {
         print("Le mot n'est pas valide, réessayez");
     } else {
@@ -153,6 +157,8 @@ if (isset($_POST['WORD'])) {
         $wtd = $redis->get('WordToDisplay');
         $MyWord = showWordToDisplay($wtd);
         $redis->set('nbTries', 10);
+        $btnWordIsEnabled = "false";
+        $btnLetterIsEnabled = "true";
     }
 }
 
@@ -186,6 +192,8 @@ if (isset($_POST['LETTER'])) {
                         $_SESSION['playerChoosingWord'] = 1;
                     }
                     $redis->set('nbTries', "Le jeu n'a pas commencé");
+                    $btnLetterIsEnabled = "false";
+                    $btnWordIsEnabled = "true";
                 }
 
                 //création + ajout à la base de données dans un Set : lettres proposées
@@ -196,12 +204,10 @@ if (isset($_POST['LETTER'])) {
                     $MyWord = showWordToDisplay(replaceInWord($letterValue, $redis));
                 } else {
                     $MyWord = showWordToDisplay(replaceInWord(".", $redis));
-                    echo '<br/>';
                     $errorMessage = "la lettre n'est pas dans le mot";
                 }
 
                 $_SESSION['IsProposingLetter']++;
-                echo ("Il propose une lettre Joueur : " . $_SESSION['IsProposingLetter']);
                 if ($_SESSION['IsProposingLetter'] == $_SESSION['playerChoosingWord']) {
                     $_SESSION['IsProposingLetter']++;
                 }
@@ -212,9 +218,9 @@ if (isset($_POST['LETTER'])) {
                         $_SESSION['IsProposingLetter'] = 2;
                     }
                 }
+                $btnWordIsEnabled = "false";
             } else {
                 $MyWord = showWordToDisplay(replaceInWord(".", $redis));
-                echo '<br/>';
                 $errorMessage = "Cette lettre a déjà été proposée";
             }
         } else {
@@ -228,6 +234,9 @@ if (isset($_POST['LETTER'])) {
                 $_SESSION['playerChoosingWord'] = 1;
             }
             $redis->set('nbTries', "Le jeu n'a pas commencé");
+            $btnLetterIsEnabled = "false";
+            echo("test");
+            $btnWordIsEnabled = "true";
         }
     }
 }
@@ -317,7 +326,9 @@ if (isset($_POST['LETTER'])) {
                 <span>
                     <form method="post" action="index.php">
                         <input type="text" size="3" name="LETTER" />
-                        <input type="submit" />
+                        <input type="submit" <?php if($btnLetterIsEnabled == "false"){
+                            echo("disabled");
+                        }  ?>/>
                     </form>
                 </span>
             </div>
@@ -331,7 +342,10 @@ if (isset($_POST['LETTER'])) {
                 <span>
                     <form method="post" action="index.php">
                         <input type="text" name="WORD" />
-                        <input type="submit" />
+                        
+                        <input type="submit" <?php if($btnWordIsEnabled == "false"){
+                            echo("disabled");
+                        }  ?>/>
                     </form>
                 </span>
             </div>
