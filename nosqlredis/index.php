@@ -193,6 +193,8 @@ $redis->del('message');
                         $wtd = $redis->get('WordToDisplay');
                         showWordToDisplay($wtd);
                         $redis->set('nbTries', 10);
+                        //on bloque le bouton Valider 
+                        ableValidationButton(false);
                     }
                 }
 
@@ -227,6 +229,8 @@ $redis->del('message');
                                         $_SESSION['playerChoosingWord'] = 1;
                                     }
                                     $redis->set('nbTries', "Le jeu n'a pas commencé");
+                                    //on débloque le bouton Valider pour le mot
+                                    ableValidationButton(true);
                                 }
 
                                 //création + ajout à la base de données dans un Set : lettres proposées
@@ -268,6 +272,8 @@ $redis->del('message');
                                 $_SESSION['playerChoosingWord'] = 1;
                             }
                             $redis->set('nbTries', "Le jeu n'a pas commencé");
+                            //on débloque le bouton Valider du mot
+                            ableValidationButton(true);
                         }
                     }
                 }
@@ -322,7 +328,7 @@ $redis->del('message');
                 <span>
                     <form method="post" action="index.php">
                         <input type="text" name="WORD" />
-                        <input type="submit" />
+                        <input type="submit" id="submitWord"/>
                     </form>
                 </span>
             </div>
@@ -428,6 +434,17 @@ function goodWord($word)
         }
     }
     return $bool;
+}
+
+//Bloque / débloque le bouton Valider pour proposer un mot 
+function ableValidationButton($isAble) {
+    $document = new DOMDocument("1.0","UTF-8"); 
+    if($isAble == false) {
+        $document->getElementById("submitWord")->setAttribute("disabled", true);
+    }
+    elseif($isAble == true) {
+        $document->getElementById("submitWord")->setAttribute("disabled", false);
+    }
 }
 
 ?>
