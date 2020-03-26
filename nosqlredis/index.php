@@ -107,7 +107,7 @@ $redis->del('message');
         <span class="navbar-brand mb-0 h1">Le PeNdU</span>
         <span class="navbar-text">
             <?php
-            $name = $redis->HGET("player" . $i . "", "name");
+            $name = $redis->HGET("player".$i."", "name");
             print("Bonjour " . $name . " ton score est 10 points !"); ?>
         </span>
     </nav>
@@ -190,7 +190,7 @@ $redis->del('message');
 
                             $redis->decrby('nbTries', 1);
                             $nbTries = $redis->get('nbTries');
-                            if ($nbTries == 9) {
+                            if ($nbTries == 0) {
                                 $_SESSION['playerChoosingWord']++;
                                 if ($_SESSION['playerChoosingWord'] > $nbPlayers) {
                                     $_SESSION['playerChoosingWord'] = 1;
