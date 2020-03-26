@@ -53,7 +53,7 @@ if (!isset($_SESSION['gameStarted'])) {
         "ProposedWord" => "false"
     ));
     //On crée une variable de session pour dire que le jeu est lancé
-    $redis->set('nbTries', 0);
+    $redis->set('nbTries', "Le jeu n'a pas commencé");
 
     $_SESSION['playerChoosingWord'] = rand(1, $nbPlayers);
     if ($_SESSION['playerChoosingWord'] != 1) {
@@ -144,96 +144,90 @@ $redis->del('message');
                     }
                     if (!goodWord($_POST['WORD'])) {
                         print("Le mot n'est pas valide, réessayez");
-                     }
-                     else {
-                    $redis->set('WordToFind', $_POST['WORD']);
-                    //TTL à 60 secondes
-                    $redis->expire('WordToFind', 60);
-                    $mot = $redis->get('WordToFind');
-                    $longueurmot = strlen($mot);
+                    } else {
+                        $redis->set('WordToFind', $_POST['WORD']);
+                        //TTL à 60 secondes
+                        $redis->expire('WordToFind', 60);
+                        $mot = $redis->get('WordToFind');
+                        $longueurmot = strlen($mot);
 
-                    $wordToDisplay = "";
+                        $wordToDisplay = "";
 
-                    for ($i = 1; $i <= $longueurmot; $i++) {
+                        for ($i = 1; $i <= $longueurmot; $i++) {
 
-                        $wordToDisplay = $wordToDisplay . "_";
+                            $wordToDisplay = $wordToDisplay . "_";
+                        }
+
+                        $redis->set('WordToDisplay', $wordToDisplay);
+                        $wtd = $redis->get('WordToDisplay');
+                        showWordToDisplay($wtd);
+                        $redis->set('nbTries', 10);
                     }
-
-                    $redis->set('WordToDisplay', $wordToDisplay);
-                    $wtd = $redis->get('WordToDisplay');
-                    showWordToDisplay($wtd);
-                    $redis->set('nbTries', 10);
                 }
-            }
 
                 if (isset($_POST['LETTER'])) {
 
-                if (!goodCharacter($_POST['LETTER'])) {
+                    if (!goodCharacter($_POST['LETTER'])) {
 
-                    showWordToDisplay(replaceInWord(".", $redis));
-                    echo'<br/>';
-                    print("La lettre entrée n'est pas valide");
-                }
+                        showWordToDisplay(replaceInWord(".", $redis));
+                        echo '<br/>';
+                        print("La lettre entrée n'est pas valide");
+                    } else {
 
-                else{
-
-                    $redis->set('newLetter', $_POST['LETTER']);
-                    $letterValue = $redis->get('newLetter');
+                        $redis->set('newLetter', $_POST['LETTER']);
+                        $letterValue = $redis->get('newLetter');
 
 
-                    //On vérifie que le TTL du mot n'a pas été dépassé 
-                    if ($redis->TTL('WordToFind') > 0) {
+                        //On vérifie que le TTL du mot n'a pas été dépassé 
+                        if ($redis->TTL('WordToFind') > 0) {
 
-                        //on vérifie que la lettre n'a pas déjà été proposée
-                        if (letterAlreadyIn($letterValue, $redis) == false) {
-                            //On vas tester tous les cas pour définir qui est le suivant
+                            //on vérifie que la lettre n'a pas déjà été proposée
+                            if (letterAlreadyIn($letterValue, $redis) == false) {
+                                //On vas tester tous les cas pour définir qui est le suivant
 
-                            $redis->decrby('nbTries', 1);
-                            $nbTries = $redis->get('nbTries');
-                            if ($nbTries == 9) {
-                                $_SESSION['playerChoosingWord']++;
-                                if ($_SESSION['playerChoosingWord'] > $nbPlayers) {
-                                    $_SESSION['playerChoosingWord'] = 1;
+                                $redis->decrby('nbTries', 1);
+                                $nbTries = $redis->get('nbTries');
+                                if ($nbTries == 0) {
+                                    $_SESSION['playerChoosingWord']++;
+                                    if ($_SESSION['playerChoosingWord'] > $nbPlayers) {
+                                        $_SESSION['playerChoosingWord'] = 1;
+                                    }
+                                    $redis->set('nbTries', 10);
                                 }
-                                $redis->set('nbTries', 10);
-                            }
-                       
-                            echo ("Il vous reste ".$nbTries." essais !");
-                            echo'<br/>';
 
-                            //création + ajout à la base de données dans un Set : lettres proposées
-                            $redis->sAdd('letters', $letterValue); //de type Set           
-                            if (letterBelongsToWord($letterValue, $redis)) {
+                                //création + ajout à la base de données dans un Set : lettres proposées
+                                $redis->sAdd('letters', $letterValue); //de type Set           
+                                if (letterBelongsToWord($letterValue, $redis)) {
 
-                                //remplacer la lettres dans le mot aux endroits correspondants et afficher
-                                showWordToDisplay(replaceInWord($letterValue, $redis));
+                                    //remplacer la lettres dans le mot aux endroits correspondants et afficher
+                                    showWordToDisplay(replaceInWord($letterValue, $redis));
+                                } else {
+                                    showWordToDisplay(replaceInWord(".", $redis));
+                                    echo '<br/>';
+                                    print("la lettre n'est pas dans le mot");
+                                }
+
+                                $_SESSION['IsProposingLetter']++;
+                                if ($_SESSION['IsProposingLetter'] == $_SESSION['playerChoosingWord']) {
+                                    $_SESSION['IsProposingLetter']++;
+                                }
+                                if ($_SESSION['IsProposingLetter'] > $nbPlayers) {
+                                    if ($_SESSION['playerChoosingWord'] != 1) {
+                                        $_SESSION['IsProposingLetter'] = 1;
+                                    } else {
+                                        $_SESSION['IsProposingLetter'] = 2;
+                                    }
+                                }
                             } else {
                                 showWordToDisplay(replaceInWord(".", $redis));
-                                echo'<br/>';
-                                print("la lettre n'est pas dans le mot");
-                            }
-
-                            $_SESSION['IsProposingLetter']++;
-                            if ($_SESSION['IsProposingLetter'] == $_SESSION['playerChoosingWord']) {
-                                $_SESSION['IsProposingLetter']++;
-                            }
-                            if ($_SESSION['IsProposingLetter'] > $nbPlayers) {
-                                if ($_SESSION['playerChoosingWord'] != 1) {
-                                    $_SESSION['IsProposingLetter'] = 1;
-                                } else {
-                                    $_SESSION['IsProposingLetter'] = 2;
-                                }
+                                echo '<br/>';
+                                echo ("Cette lettre a déjà été proposée");
                             }
                         } else {
-                            showWordToDisplay(replaceInWord(".", $redis));
-                            echo'<br/>';
-                            echo("Cette lettre a déjà été proposée");
+                            print("Le temps est écoulé !");
                         }
-                    } else {
-                        print("Le temps est écoulé !");
                     }
                 }
-            }
 
 
                 ?>
@@ -257,7 +251,12 @@ $redis->del('message');
             <div class="col-sm-6">
                 <h2>Nombre d'essais restant</h2>
                 <span><?php $nbTries = $redis->get('nbTries');
-                        print($nbTries . " essais"); ?></span>
+                        if ($nbTries == "Le jeu n'a pas commencé") {
+                            print($nbTries);
+                        } else {
+                            print($nbTries . " essais");
+                        }
+                        ?></span>
             </div>
         </div>
         <div class="row">
@@ -273,6 +272,10 @@ $redis->del('message');
 
             <div class="col-sm-6">
                 <h2>Proposer un mot</h2>
+                <?php
+                $playerChoosingWord = $redis->HGET("player" . $_SESSION['playerChoosingWord'] . "", "name");
+                echo ("C'est au tour de " . $playerChoosingWord . " de proposer un mot");
+                ?>
                 <span>
                     <form method="post" action="index.php">
                         <input type="text" name="WORD" />
@@ -383,26 +386,26 @@ function showWordToDisplay($wordToDisplay)
 }
 
 //verifie si un caractère est valide, retourne un boolean
-function goodCharacter($character) {
+function goodCharacter($character)
+{
 
-    if (preg_match("#[a-zA-Z]#", $character)){ 
+    if (preg_match("#[a-zA-Z]#", $character)) {
 
-        return TRUE; 
+        return TRUE;
+    } else {
+        return FALSE;
     }
-      else{ 
-           return FALSE; 
-     }
 }
 
 // vérifie si le mot est valide, retourne un boolean
-function goodWord($word){
+function goodWord($word)
+{
     $bool = true;
-    for ($i=0;$i<strlen($word);$i++){
-        if (preg_match("#[a-zA-Z]#", $word)){
-                $bool=true;
-        }
-        else {
-            $bool=false;
+    for ($i = 0; $i < strlen($word); $i++) {
+        if (preg_match("#[a-zA-Z]#", $word)) {
+            $bool = true;
+        } else {
+            $bool = false;
         }
     }
     return $bool;
