@@ -190,7 +190,7 @@ if (isset($_POST['LETTER'])) {
 
                 $redis->decrby('nbTries', 1);
                 $nbTries = $redis->get('nbTries');
-                if ($nbTries == 5) {
+                if ($nbTries == 0) {
                     //Si il n'y a plus d'essais, on ajoute dix points au joueur qui a proposé le mot
                     $redis->incrBy('points:' . $_SESSION['playerChoosingWord'], 10);
 
