@@ -18,6 +18,12 @@ try {
     die($e->getMessage());
 }
 
+//initialisation des variables
+$MyWord = "";
+$errorMessage = "";
+$btnWordIsEnabled = false;
+$btnLetterIsEnabled = false;
+
 //-------- Création de joueurs --------
 $nbPlayers = 4;
 //On test si on lance le jeu pour la première fois
