@@ -146,7 +146,7 @@ if (isset($_POST['WORD'])) {
     if (!goodWord($_POST['WORD'])) {
         print("Le mot n'est pas valide, réessayez");
     } else {
-        $redis->set('WordToFind', $_POST['WORD']);
+        $redis->set('WordToFind', strtolower($_POST['WORD']));
         //TTL à 60 secondes
         $redis->expire('WordToFind', 60);
         $mot = $redis->get('WordToFind');
@@ -177,7 +177,7 @@ if (isset($_POST['LETTER'])) {
         $btnWordIsEnabled = "false";
     } else {
 
-        $redis->set('newLetter', $_POST['LETTER']);
+        $redis->set('newLetter', strtolower($_POST['LETTER']));
         $letterValue = $redis->get('newLetter');
 
 
@@ -252,7 +252,7 @@ if (isset($_POST['LETTER'])) {
 }
 
 if (isset($_POST['foundWord'])) {
-    $redis->set('foundWord', $_POST['foundWord']);
+    $redis->set('foundWord', strtolower($_POST['foundWord']));
     $wordValue = $redis->get('foundWord');
 
     //On vérifie que le TTL du mot n'a pas été dépassé 
